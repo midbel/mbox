@@ -1,0 +1,9 @@
+From midbel@foobar.org Wed Jan 22 11:15:00 2020
+From: midbel <midbel@foobar.org>
+To: rustine <rustine@foobar.org>
+Subject: mbox test
+Date: Wed, 22 Jan 2020 11:15:00 +0200
+Message-ID: <1234@local.foobar.org>
+
+This is a message to be parsed by the library.
+So, "good luck".

@@ -1,0 +1,45 @@
+From midbel@foobar.org Wed Jan 21 11:15:00 2020
+From: midbel <midbel@foobar.org>
+To: rustine <rustine@foobar.org>
+Subject: mbox test
+Date: Wed, 22 Jan 2020 11:15:00 +0200
+Message-ID: <5678@local.foobar.org>
+Content-Type: multipart/alternative;boundary="unique-boundary"
+
+prolog should be skipped
+
+--unique-boundary
+Content-Type: multipart/alternative;boundary="another-boundary"
+
+--another-boundary
+Content-Type: text/plain;charset=utf-8
+
+This is a message to be parsed by the library.
+So, "good luck".
+
+--another-boundary
+Content-Type: text/html;charset=utf-8
+
+<p>This is a message to be parsed by the <em>library</em>.</p>
+<p>So, <strong>good luck</strong>.</p>
+
+--another-boundary--
+
+--unique-boundary
+Content-Disposition: attachment; filename="sample.go"
+Content-Transfer-Encoding: bit8
+Content-Type: text/html;charset=utf-8
+
+package main
+
+import (
+  "fmt"
+)
+
+func main() {
+  fmt.Println("hello world")
+}
+
+--unique-boundary--
+
+epilog should be skipped
