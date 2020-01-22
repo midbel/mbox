@@ -10,7 +10,7 @@ import (
 	"mime/quotedprintable"
 	"net/textproto"
 	"strings"
-  "time"
+	"time"
 
 	"github.com/midbel/mime"
 )
@@ -26,8 +26,8 @@ const (
 
 	hdrDate       = "date"
 	hdrFrom       = "from"
-  hdrTo         = "to"
-  hdrCc         = "cc"
+	hdrTo         = "to"
+	hdrCc         = "cc"
 	hdrSubject    = "subject"
 	hdrInReplyTo  = "in-reply-to"
 	hdrReferences = "references"
@@ -84,23 +84,23 @@ func ReadMessage(rs *bufio.Reader) (Message, error) {
 }
 
 func (m Message) Date() time.Time {
-  return parseTime(m.Get(hdrDate)).UTC()
+	return parseTime(m.Get(hdrDate)).UTC()
 }
 
 func (m Message) Subject() string {
-  return m.Get(hdrSubject)
+	return m.Get(hdrSubject)
 }
 
 func (m Message) From() string {
-  return parseAddress(m.Get(hdrFrom))
+	return parseAddress(m.Get(hdrFrom))
 }
 
 func (m Message) To() []string {
-  return parseAddressList(m.Get(hdrTo))
+	return parseAddressList(m.Get(hdrTo))
 }
 
 func (m Message) Cc() []string {
-  return parseAddressList(m.Get(hdrCc))
+	return parseAddressList(m.Get(hdrCc))
 }
 
 func (m Message) IsMime() bool {
@@ -121,7 +121,7 @@ func (m Message) IsReply() bool {
 
 type Part struct {
 	Header
-	Body   []byte
+	Body []byte
 }
 
 func (p Part) Text() []byte {
@@ -163,18 +163,18 @@ func (p Part) Filename() string {
 }
 
 func (p Part) IsAttachment() bool {
-  hdr := p.Get(hdrContentDispo)
-  if hdr == "" {
-    return false
-  }
+	hdr := p.Get(hdrContentDispo)
+	if hdr == "" {
+		return false
+	}
 	return strings.Index(hdr, "attachment") >= 0
 }
 
 func (p Part) IsInline() bool {
-  hdr := p.Get(hdrContentDispo)
-  if hdr == "" {
-    return false
-  }
+	hdr := p.Get(hdrContentDispo)
+	if hdr == "" {
+		return false
+	}
 	return strings.Index(hdr, "inline") >= 0
 }
 
@@ -425,25 +425,25 @@ func parseTime(str string) time.Time {
 }
 
 func parseAddress(str string) string {
-  i := strings.Index(str, "<")
-  if i < 0 {
-    return str
-  }
-  str = str[i+1:]
-  i = strings.Index(str, ">")
-  if i > 0 {
-    str = str[:i]
-  }
-  return str
+	i := strings.Index(str, "<")
+	if i < 0 {
+		return str
+	}
+	str = str[i+1:]
+	i = strings.Index(str, ">")
+	if i > 0 {
+		str = str[:i]
+	}
+	return str
 }
 
 func parseAddressList(str string) []string {
-  var (
-    ms = strings.Split(str, ",")
-    as = make([]string, len(ms))
-  )
-  for i := 0; i < len(ms); i++ {
-    as[i] = parseAddress(ms[i])
-  }
-  return as
+	var (
+		ms = strings.Split(str, ",")
+		as = make([]string, len(ms))
+	)
+	for i := 0; i < len(ms); i++ {
+		as[i] = parseAddress(ms[i])
+	}
+	return as
 }
