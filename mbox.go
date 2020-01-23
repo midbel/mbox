@@ -83,6 +83,26 @@ func ReadMessage(rs *bufio.Reader) (Message, error) {
 	return m, nil
 }
 
+func (m Message) Filter(fn func(Header) bool) []Part {
+  as := make([]Part, 0, len(m.Parts))
+  for _, p := range m.Parts {
+    if fn(p.Header) {
+      as = append(as, p)
+    }
+  }
+  return as
+}
+
+func (m Message) Files() []string {
+  files := make([]string, 0, len(m.Parts))
+  for _, p := range m.Parts {
+    if file := p.Filename(); file != "" {
+      files = append(files, file)
+    }
+  }
+  return files
+}
+
 func (m Message) Date() time.Time {
 	return parseTime(m.Get(hdrDate)).UTC()
 }
