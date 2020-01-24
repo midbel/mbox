@@ -65,7 +65,7 @@ func main() {
 	}
 
 	var (
-		r   = bufio.NewReader(io.MultiReader(rs...))
+		r    = bufio.NewReader(io.MultiReader(rs...))
 		mail int
 	)
 	for {
@@ -91,8 +91,8 @@ func main() {
 
 func parseArgs() ([]string, FilterFunc) {
 	var (
-		dtstart Date
-		dtend   Date
+		dtstart  Date
+		dtend    Date
 		noreply  = flag.Bool("no-reply", false, "only e-mails that are not replies")
 		attached = flag.Bool("with-attachment", false, "only e-mails that have attachments")
 		subject  = flag.String("subject", "", "only e-mails with given subject")
