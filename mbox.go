@@ -84,23 +84,23 @@ func ReadMessage(rs *bufio.Reader) (Message, error) {
 }
 
 func (m Message) Filter(fn func(Header) bool) []Part {
-  as := make([]Part, 0, len(m.Parts))
-  for _, p := range m.Parts {
-    if fn(p.Header) {
-      as = append(as, p)
-    }
-  }
-  return as
+	as := make([]Part, 0, len(m.Parts))
+	for _, p := range m.Parts {
+		if fn(p.Header) {
+			as = append(as, p)
+		}
+	}
+	return as
 }
 
 func (m Message) Files() []string {
-  files := make([]string, 0, len(m.Parts))
-  for _, p := range m.Parts {
-    if file := p.Filename(); file != "" {
-      files = append(files, file)
-    }
-  }
-  return files
+	files := make([]string, 0, len(m.Parts))
+	for _, p := range m.Parts {
+		if file := p.Filename(); file != "" {
+			files = append(files, file)
+		}
+	}
+	return files
 }
 
 func (m Message) Date() time.Time {
@@ -173,29 +173,29 @@ func (p Part) Bytes() []byte {
 }
 
 func (p Part) Filename() string {
-	if p.IsAttachment() {
-		return ""
+	hdr, ps := parseValueField(p.Get(hdrContentDispo))
+	if hdr == "attachment" || hdr == "inline" {
+		hdr = ps["filename"]
+		if hdr == "" {
+			mt, err := mime.Parse(p.Get(hdrContentType))
+			if err == nil {
+				hdr = mt.Params["name"]
+			}
+		}
+	} else {
+		hdr = ""
 	}
-	if p.IsInline() {
-		return ""
-	}
-	return ""
+	return hdr
 }
 
 func (p Part) IsAttachment() bool {
-	hdr := p.Get(hdrContentDispo)
-	if hdr == "" {
-		return false
-	}
-	return strings.Index(hdr, "attachment") >= 0
+	hdr, _ := parseValueField(p.Get(hdrContentDispo))
+	return hdr == "attachment"
 }
 
 func (p Part) IsInline() bool {
-	hdr := p.Get(hdrContentDispo)
-	if hdr == "" {
-		return false
-	}
-	return strings.Index(hdr, "inline") >= 0
+	hdr, _ := parseValueField(p.Get(hdrContentDispo))
+	return hdr == "inline"
 }
 
 func (p Part) IsMultipart() bool {
@@ -442,6 +442,23 @@ func parseTime(str string) time.Time {
 		}
 	}
 	return when
+}
+
+func parseValueField(str string) (string, map[string]string) {
+	parts := strings.Split(str, ";")
+	if len(parts) == 1 {
+		return parts[0], nil
+	}
+	ps := make(map[string]string)
+	for _, str := range parts[1:] {
+		var (
+			vs  = strings.Split(strings.TrimSpace(str), "=")
+			key = strings.ToLower(vs[0])
+			val = strings.Trim(vs[1], "\" ")
+		)
+		ps[strings.TrimSpace(key)] = val
+	}
+	return parts[0], ps
 }
 
 func parseAddress(str string) string {
