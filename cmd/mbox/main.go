@@ -65,8 +65,8 @@ func main() {
 	}
 
 	var (
-		queue  = filterMessages(io.MultiReader(rs...), filter)
-		mail   int
+		queue = filterMessages(io.MultiReader(rs...), filter)
+		mail  int
 	)
 	for m := range queue {
 		mail++
@@ -76,8 +76,8 @@ func main() {
 
 func parseArgs() ([]string, FilterFunc) {
 	var (
-		dtstart Date
-		dtend   Date
+		dtstart  Date
+		dtend    Date
 		noreply  = flag.Bool("no-reply", false, "only e-mails that are not replies")
 		attached = flag.Bool("with-attachment", false, "only e-mails that have attachments")
 		subject  = flag.String("subject", "", "only e-mails with given subject")
