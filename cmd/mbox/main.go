@@ -51,7 +51,7 @@ func (d *Date) String() string {
 type FilterFunc func(mbox.Message) bool
 
 func main() {
-	files, filter := parseArgs()
+	files, keep := parseArgs()
 
 	rs := make([]io.Reader, len(files))
 	for i := 0; i < len(files); i++ {
@@ -65,19 +65,34 @@ func main() {
 	}
 
 	var (
-		queue = filterMessages(io.MultiReader(rs...), filter)
-		mail  int
+		r   = bufio.NewReader(io.MultiReader(rs...))
+		mail int
 	)
-	for m := range queue {
+	for {
+		m, err := mbox.ReadMessage(r)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(2)
+		}
+		if !keep(m) {
+			continue
+		}
 		mail++
-		fmt.Println(mail, m.Date(), m.From(), m.Subject())
+		var (
+			attach = m.Files()
+			when   = m.Date().Format("2006-01-02 15:04:05")
+		)
+		fmt.Printf("%4d | %s | %32s | %3d | %s\n", mail, when, m.From(), len(attach), m.Subject())
 	}
 }
 
 func parseArgs() ([]string, FilterFunc) {
 	var (
-		dtstart  Date
-		dtend    Date
+		dtstart Date
+		dtend   Date
 		noreply  = flag.Bool("no-reply", false, "only e-mails that are not replies")
 		attached = flag.Bool("with-attachment", false, "only e-mails that have attachments")
 		subject  = flag.String("subject", "", "only e-mails with given subject")
@@ -98,27 +113,6 @@ func parseArgs() ([]string, FilterFunc) {
 	}
 
 	return flag.Args(), keepMessage(filters...)
-}
-
-func filterMessages(r io.Reader, keep FilterFunc) <-chan mbox.Message {
-	if keep == nil {
-		keep = func(_ mbox.Message) bool { return true }
-	}
-	queue := make(chan mbox.Message)
-	go func() {
-		defer close(queue)
-		rs := bufio.NewReader(r)
-		for {
-			m, err := mbox.ReadMessage(rs)
-			if err != nil {
-				break
-			}
-			if keep(m) {
-				queue <- m
-			}
-		}
-	}()
-	return queue
 }
 
 func keepMessage(filters ...FilterFunc) FilterFunc {
