@@ -19,10 +19,12 @@ var groups = map[string][]string{
 	"recipient":      {"to", "cc", "bcc"},
 	"identification": {"message-id", "in-reply-to", "references"},
 	"information":    {"subject", "comments", "keywords"},
-	"trace":          {"return ", "path", "received"},
+	"trace":          {"return ", "path", "received", "user-agent"},
+	"content":        {"content-type", "content-length", "content-disposition", "content-transfer-encoding", "content-language"},
 }
 
 func main() {
+	extended := flag.Bool("x", false, "include extended headers")
 	flag.Parse()
 
 	r, err := os.Open(flag.Arg(0))
@@ -50,7 +52,7 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Println(m.Get("message-id"))
-		dumpMessage(m, fs)
+		dumpMessage(m, fs, *extended)
 	}
 }
 
@@ -64,7 +66,7 @@ func listFields(args []string) []string {
 		if _, ok := seen[field]; ok {
 			continue
 		}
-		if vs, ok := groups[field]; ok {
+		if vs, ok := groups[strings.ToLower(field)]; ok {
 			for _, v := range vs {
 				if _, ok := seen[v]; ok {
 					continue
@@ -80,8 +82,8 @@ func listFields(args []string) []string {
 	return fields
 }
 
-func dumpMessage(m mbox.Message, fields []string) {
-	dumpHeader(m.Header, fields, "")
+func dumpMessage(m mbox.Message, fields []string, extended bool) {
+	dumpHeader(m.Header, fields, extended, "")
 	if len(m.Parts) == 0 {
 		return
 	}
@@ -89,13 +91,13 @@ func dumpMessage(m mbox.Message, fields []string) {
 		if len(p.Header) == 0 {
 			continue
 		}
-		dumpHeader(p.Header, fields, "> ")
+		dumpHeader(p.Header, fields, extended, "> ")
 	}
 }
 
-func dumpHeader(hdr mbox.Header, fields []string, prefix string) {
+func dumpHeader(hdr mbox.Header, fields []string, extended bool, prefix string) {
 	if len(fields) == 0 {
-		dumpAll(hdr, prefix)
+		dumpAll(hdr, extended, prefix)
 		return
 	}
 	for _, f := range fields {
@@ -112,9 +114,9 @@ func dumpHeader(hdr mbox.Header, fields []string, prefix string) {
 	}
 }
 
-func dumpAll(hdr mbox.Header, prefix string) {
+func dumpAll(hdr mbox.Header, extended bool, prefix string) {
 	for k, vs := range hdr {
-		if strings.HasPrefix(strings.ToLower(k), "x-") {
+		if !extended && strings.HasPrefix(strings.ToLower(k), "x-") {
 			continue
 		}
 		for _, v := range vs {
