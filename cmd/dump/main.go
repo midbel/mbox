@@ -26,6 +26,7 @@ var groups = map[string][]string{
 func main() {
 	extended := flag.Bool("x", false, "include extended headers")
 	clean := flag.Bool("c", false, "clean header values")
+	uniq := flag.Bool("u", false, "filter uniq message")
 	flag.Parse()
 
 	r, err := os.Open(flag.Arg(0))
@@ -38,6 +39,7 @@ func main() {
 	var (
 		rs = bufio.NewReader(r)
 		fs = listFields(flag.Args())
+		seen = make(map[string]struct{})
 	)
 
 	for i := 0; ; i++ {
@@ -52,7 +54,15 @@ func main() {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
-		fmt.Println(m.Get("message-id"))
+		mid := m.Get("message-id")
+		if *uniq {
+			if _, ok := seen[mid]; ok {
+				continue
+			}
+			seen[mid] = struct{}{}
+		}
+		fmt.Println(mid)
+
 		dumpMessage(m, fs, *extended, *clean)
 	}
 }
