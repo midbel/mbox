@@ -13,6 +13,15 @@ import (
 	"github.com/midbel/mbox"
 )
 
+var groups = map[string][]string{
+	"date":           {"date"},
+	"sender":         {"from", "sender", "reply-to"},
+	"recipient":      {"to", "cc", "bcc"},
+	"identification": {"message-id", "in-reply-to", "references"},
+	"information":    {"subject", "comments", "keywords"},
+	"trace":          {"return ", "path", "received"},
+}
+
 func main() {
 	flag.Parse()
 
@@ -23,12 +32,11 @@ func main() {
 	}
 	defer r.Close()
 
-	fields := make([]string, flag.NArg()-1)
-	for i := 1; i < flag.NArg(); i++ {
-		fields[i-1] = textproto.CanonicalMIMEHeaderKey(flag.Arg(i))
-	}
+	var (
+		rs = bufio.NewReader(r)
+		fs = listFields(flag.Args())
+	)
 
-	rs := bufio.NewReader(r)
 	for i := 0; ; i++ {
 		if i > 0 {
 			fmt.Println("---")
@@ -42,8 +50,34 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Println(m.Get("message-id"))
-		dumpMessage(m, fields)
+		dumpMessage(m, fs)
 	}
+}
+
+func listFields(args []string) []string {
+	var (
+		seen = make(map[string]struct{})
+		fields = make([]string, 0, len(args))
+	)
+	for i := 1; i < len(args); i++ {
+		field := args[i]
+		if _, ok := seen[field]; ok {
+			continue
+		}
+		if vs, ok := groups[field]; ok {
+			for _, v := range vs {
+				if _, ok := seen[v]; ok {
+					continue
+				}
+				fields = append(fields, textproto.CanonicalMIMEHeaderKey(v))
+				seen[v] = struct{}{}
+			}
+		} else {
+			fields = append(fields, textproto.CanonicalMIMEHeaderKey(field))
+		}
+		seen[field] = struct{}{}
+	}
+	return fields
 }
 
 func dumpMessage(m mbox.Message, fields []string) {

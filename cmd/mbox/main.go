@@ -84,8 +84,12 @@ func main() {
 		var (
 			attach = m.Files()
 			when   = m.Date().Format("2006-01-02 15:04:05")
+			reply  = "-"
 		)
-		fmt.Printf("%4d | %s | %32s | %3d | %s\n", mail, when, m.From(), len(attach), m.Subject())
+		if m.IsReply() {
+			reply = "RE"
+		}
+		fmt.Printf("%4d | %2s | %s | %32s | %3d | %s\n", mail, reply, when, m.From(), len(attach), m.Subject())
 	}
 }
 
@@ -93,6 +97,7 @@ func parseArgs() ([]string, FilterFunc) {
 	var (
 		dtstart  Date
 		dtend    Date
+		uniq     = flag.Bool("uniq", false, "keep only one version of e-mail")
 		noreply  = flag.Bool("no-reply", false, "only e-mails that are not replies")
 		attached = flag.Bool("with-attachment", false, "only e-mails that have attachments")
 		subject  = flag.String("subject", "", "only e-mails with given subject")
@@ -104,6 +109,7 @@ func parseArgs() ([]string, FilterFunc) {
 	flag.Parse()
 
 	filters := []FilterFunc{
+		filterUniq(*uniq),
 		filterInterval(dtstart.Time, dtend.Time),
 		filterFromAddr(*faddr),
 		filterToAddr(*taddr),
@@ -122,6 +128,21 @@ func keepMessage(filters ...FilterFunc) FilterFunc {
 				return false
 			}
 		}
+		return true
+	}
+}
+
+func filterUniq(uniq bool) FilterFunc {
+	if !uniq {
+		return func(_ mbox.Message) bool { return true }
+	}
+	seen := make(map[string]struct{})
+	return func(m mbox.Message) bool {
+		_, ok := seen[m.Get("Message-Id")]
+		if ok {
+			return false
+		}
+		seen[m.Get("Message-Id")] = struct{}{}
 		return true
 	}
 }
@@ -147,9 +168,12 @@ func filterSubject(subj string) FilterFunc {
 	}
 }
 
-func filterReply(reply bool) FilterFunc {
+func filterReply(noreply bool) FilterFunc {
 	return func(m mbox.Message) bool {
-		return !reply || m.IsReply()
+		if noreply && m.IsReply() {
+			return false
+		}
+		return true
 	}
 }
 
