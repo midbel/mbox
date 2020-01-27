@@ -132,6 +132,15 @@ func keepMessage(filters ...FilterFunc) FilterFunc {
 	}
 }
 
+func filterHeader(k, v string) FilterFunc {
+	return func(m mbox.Message) bool {
+		if v == "" {
+			return m.Has(k)
+		}
+		return m.Get(k) == v
+	}
+}
+
 func filterUniq(uniq bool) FilterFunc {
 	if !uniq {
 		return func(_ mbox.Message) bool { return true }

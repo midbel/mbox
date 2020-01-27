@@ -25,6 +25,7 @@ var groups = map[string][]string{
 
 func main() {
 	extended := flag.Bool("x", false, "include extended headers")
+	clean := flag.Bool("c", false, "clean header values")
 	flag.Parse()
 
 	r, err := os.Open(flag.Arg(0))
@@ -52,13 +53,13 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Println(m.Get("message-id"))
-		dumpMessage(m, fs, *extended)
+		dumpMessage(m, fs, *extended, *clean)
 	}
 }
 
 func listFields(args []string) []string {
 	var (
-		seen = make(map[string]struct{})
+		seen   = make(map[string]struct{})
 		fields = make([]string, 0, len(args))
 	)
 	for i := 1; i < len(args); i++ {
@@ -82,8 +83,8 @@ func listFields(args []string) []string {
 	return fields
 }
 
-func dumpMessage(m mbox.Message, fields []string, extended bool) {
-	dumpHeader(m.Header, fields, extended, "")
+func dumpMessage(m mbox.Message, fields []string, extended, clean bool) {
+	dumpHeader(m.Header, fields, extended, clean, "")
 	if len(m.Parts) == 0 {
 		return
 	}
@@ -91,13 +92,13 @@ func dumpMessage(m mbox.Message, fields []string, extended bool) {
 		if len(p.Header) == 0 {
 			continue
 		}
-		dumpHeader(p.Header, fields, extended, "> ")
+		dumpHeader(p.Header, fields, extended, clean, "> ")
 	}
 }
 
-func dumpHeader(hdr mbox.Header, fields []string, extended bool, prefix string) {
+func dumpHeader(hdr mbox.Header, fields []string, extended, clean bool, prefix string) {
 	if len(fields) == 0 {
-		dumpAll(hdr, extended, prefix)
+		dumpAll(hdr, extended, clean, prefix)
 		return
 	}
 	for _, f := range fields {
@@ -109,12 +110,15 @@ func dumpHeader(hdr mbox.Header, fields []string, extended bool, prefix string) 
 			if v == "" {
 				continue
 			}
+			if clean {
+				v = cleanValue(v)
+			}
 			fmt.Printf("%s%-16s: %s\n", prefix, f, v)
 		}
 	}
 }
 
-func dumpAll(hdr mbox.Header, extended bool, prefix string) {
+func dumpAll(hdr mbox.Header, extended, clean bool, prefix string) {
 	for k, vs := range hdr {
 		if !extended && strings.HasPrefix(strings.ToLower(k), "x-") {
 			continue
@@ -123,7 +127,31 @@ func dumpAll(hdr mbox.Header, extended bool, prefix string) {
 			if v == "" {
 				continue
 			}
+			if clean {
+				v = cleanValue(v)
+			}
 			fmt.Printf("%s%-16s: %s\n", prefix, k, v)
 		}
 	}
+}
+
+func cleanValue(str string) string {
+	skip := func(j int) int {
+		for j < len(str) {
+			if str[j] == ')' {
+				break
+			}
+			j++
+		}
+		return j + 1
+	}
+	var buf strings.Builder
+	for i := 0; i < len(str); i++ {
+		if str[i] == '(' {
+			i = skip(i + 1)
+			continue
+		}
+		buf.WriteByte(str[i])
+	}
+	return buf.String()
 }
