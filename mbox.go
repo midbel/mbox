@@ -268,6 +268,20 @@ func (h Header) Split(k string) (string, map[string]string) {
 	return parseValueField(vs[0])
 }
 
+func (h Header) Equal(k, v string) bool {
+	k = textproto.CanonicalMIMEHeaderKey(k)
+	vs, ok := h[k]
+	if !ok {
+		return false
+	}
+	for _, vv := range vs {
+		if v == vv {
+			return true
+		}
+	}
+	return false
+}
+
 func (h Header) Set(k, v string) {
 	k = textproto.CanonicalMIMEHeaderKey(k)
 	if len(h[k]) > 0 {
