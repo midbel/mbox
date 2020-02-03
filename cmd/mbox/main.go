@@ -218,9 +218,14 @@ func cmpStrings(str string) (string, func(string, string) bool) {
 	if str[0] == '!' {
 		not, str = true, str[1:]
 	}
-	if str[0] == '~' {
+	switch str[0] {
+	case '^':
+		cmp, str=  strings.HasPrefix, str[1:]
+	case '$':
+		cmp, str = strings.HasSuffix, str[1:]
+	case '~':
 		cmp, str = strings.Contains, str[1:]
-	} else {
+	default:
 		cmp = func(str1, str2 string) bool { return str1 == str2 }
 	}
 	if not {
