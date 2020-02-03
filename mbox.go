@@ -139,6 +139,15 @@ func (m Message) IsReply() bool {
 	return m.Has(hdrInReplyTo)
 }
 
+func (m Message) HasAttachments() bool {
+	for _, p := range m.Parts {
+		if p.IsAttachment() {
+			return true
+		}
+	}
+	return false
+}
+
 type Part struct {
 	Header
 	Body []byte

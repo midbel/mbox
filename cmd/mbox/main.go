@@ -190,7 +190,7 @@ func withReply(noreply bool) FilterFunc {
 
 func withAttachments(attached bool) FilterFunc {
 	return func(m mbox.Message) bool {
-		return !attached || len(m.Files()) > 0
+		return !attached || m.HasAttachments()
 	}
 }
 
@@ -220,7 +220,7 @@ func cmpStrings(str string) (string, func(string, string) bool) {
 	}
 	switch str[0] {
 	case '^':
-		cmp, str=  strings.HasPrefix, str[1:]
+		cmp, str = strings.HasPrefix, str[1:]
 	case '$':
 		cmp, str = strings.HasSuffix, str[1:]
 	case '~':
