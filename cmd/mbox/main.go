@@ -109,13 +109,13 @@ func parseArgs() ([]string, FilterFunc) {
 	flag.Parse()
 
 	filters := []FilterFunc{
-		filterUniq(*uniq),
-		filterInterval(dtstart.Time, dtend.Time),
-		filterFromAddr(*faddr),
-		filterToAddr(*taddr),
-		filterSubject(*subject),
-		filterReply(*noreply),
-		filterAttachments(*attached),
+		withUniq(*uniq),
+		withInterval(dtstart.Time, dtend.Time),
+		withFrom(*faddr),
+		withTo(*taddr),
+		withSubject(*subject),
+		withReply(*noreply),
+		withAttachments(*attached),
 	}
 
 	return flag.Args(), keepMessage(filters...)
@@ -132,7 +132,7 @@ func keepMessage(filters ...FilterFunc) FilterFunc {
 	}
 }
 
-func filterHeader(k, v string) FilterFunc {
+func withHeader(k, v string) FilterFunc {
 	return func(m mbox.Message) bool {
 		if v == "" {
 			return m.Has(k)
@@ -141,7 +141,7 @@ func filterHeader(k, v string) FilterFunc {
 	}
 }
 
-func filterUniq(uniq bool) FilterFunc {
+func withUniq(uniq bool) FilterFunc {
 	if !uniq {
 		return func(_ mbox.Message) bool { return true }
 	}
@@ -156,13 +156,14 @@ func filterUniq(uniq bool) FilterFunc {
 	}
 }
 
-func filterFromAddr(from string) FilterFunc {
+func withFrom(from string) FilterFunc {
+	filter, accept := cmpStrings(from)
 	return func(m mbox.Message) bool {
-		return from == "" || m.From() == from
+		return accept(m.From(), filter)
 	}
 }
 
-func filterToAddr(to string) FilterFunc {
+func withTo(to string) FilterFunc {
 	return func(m mbox.Message) bool {
 		list := m.To()
 		sort.Strings(list)
@@ -171,13 +172,14 @@ func filterToAddr(to string) FilterFunc {
 	}
 }
 
-func filterSubject(subj string) FilterFunc {
+func withSubject(subj string) FilterFunc {
+	filter, accept := cmpStrings(subj)
 	return func(m mbox.Message) bool {
-		return subj == "" || strings.Contains(m.Subject(), subj)
+		return accept(m.Subject(), filter)
 	}
 }
 
-func filterReply(noreply bool) FilterFunc {
+func withReply(noreply bool) FilterFunc {
 	return func(m mbox.Message) bool {
 		if noreply && m.IsReply() {
 			return false
@@ -186,13 +188,13 @@ func filterReply(noreply bool) FilterFunc {
 	}
 }
 
-func filterAttachments(attached bool) FilterFunc {
+func withAttachments(attached bool) FilterFunc {
 	return func(m mbox.Message) bool {
 		return !attached || len(m.Files()) > 0
 	}
 }
 
-func filterInterval(fd, td time.Time) FilterFunc {
+func withInterval(fd, td time.Time) FilterFunc {
 	return func(m mbox.Message) bool {
 		if fd.IsZero() && td.IsZero() {
 			return true
@@ -203,4 +205,26 @@ func filterInterval(fd, td time.Time) FilterFunc {
 		}
 		return !td.IsZero() && td.After(when)
 	}
+}
+
+func cmpStrings(str string) (string, func(string, string) bool) {
+	if len(str) == 0 {
+		return str, func(_, _ string) bool { return true }
+	}
+	var (
+		not bool
+		cmp func(string, string) bool
+	)
+	if str[0] == '!' {
+		not, str = true, str[1:]
+	}
+	if str[0] == '~' {
+		cmp, str = strings.Contains, str[1:]
+	} else {
+		cmp = func(str1, str2 string) bool { return str1 == str2 }
+	}
+	if not {
+		return str, func(str1, str2 string) bool { return !cmp(str1, str2) }
+	}
+	return str, cmp
 }
