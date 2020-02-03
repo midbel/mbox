@@ -37,8 +37,8 @@ func main() {
 	defer r.Close()
 
 	var (
-		rs = bufio.NewReader(r)
-		fs = listFields(flag.Args())
+		rs   = bufio.NewReader(r)
+		fs   = listFields(flag.Args())
 		seen = make(map[string]struct{})
 	)
 
