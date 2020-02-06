@@ -93,6 +93,20 @@ func (m Message) Filter(fn func(Header) bool) []Part {
 	return as
 }
 
+func (m Message) Part(mt string) Part {
+	var p Part
+	if mt == "" {
+		return p
+	}
+	ps := m.Filter(func(hdr Header) bool {
+		return strings.HasPrefix(hdr.Get("content-type"), mt)
+	})
+	if len(ps) > 0 {
+		p = ps[0]
+	}
+	return p
+}
+
 func (m Message) Files() []string {
 	files := make([]string, 0, len(m.Parts))
 	for _, p := range m.Parts {
@@ -151,6 +165,10 @@ func (m Message) HasAttachments() bool {
 type Part struct {
 	Header
 	Body []byte
+}
+
+func (p Part) Len() int {
+	return len(p.Body)
 }
 
 func (p Part) Text() []byte {
